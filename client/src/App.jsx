@@ -39,7 +39,7 @@ export default function App() {
 
   const fetchSeries = async (target) => {
     setStatus('loading');
-    setMessage('Fetching Alpha Vantage data...');
+    setMessage('Fetching Yahoo Finance data...');
     try {
       const response = await fetch(`/api/stocks/timeseries?symbol=${target}`);
       const payload = await response.json();
@@ -89,7 +89,7 @@ export default function App() {
                 Calm, clear stock insights.
               </h1>
               <p className="mt-3 max-w-xl text-base text-slate-700">
-                Monitor a single ticker in real time with Alpha Vantage data and a
+                Monitor a single ticker in real time with Yahoo Finance data and a
                 Plotly-powered price narrative.
               </p>
             </div>
@@ -165,7 +165,7 @@ export default function App() {
               <ul className="mt-4 space-y-3 text-sm text-slate-700">
                 <li className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-ember"></span>
-                  Connect Alpha Vantage key
+                  Confirm Yahoo Finance feed
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-ocean"></span>

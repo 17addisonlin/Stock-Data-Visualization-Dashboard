@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
-const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
-const API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+const YahooFinance = require('yahoo-finance2').default;
+const yahooFinance = new YahooFinance();
 
 // Dummy stock data for testing
 const dummyStockData = [
@@ -27,97 +27,76 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const extractSeries = (payload) => {
-  const seriesKey = Object.keys(payload).find((key) =>
-    key.toLowerCase().includes('time series')
-  );
-  if (!seriesKey) {
-    return null;
-  }
-
-  return payload[seriesKey];
-};
-
 // Route to get all stocks
 router.get('/', (req, res) => {
   res.json(dummyStockData);
 });
 
-// Route to fetch time series data from Alpha Vantage
+const toDateOnly = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+};
+
+const getDateParam = (value, fallback) => {
+  if (!value) return fallback;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return fallback;
+  return parsed;
+};
+
+// Route to fetch time series data from Yahoo Finance
 router.get('/timeseries', async (req, res) => {
   const symbol = String(req.query.symbol || '').trim().toUpperCase();
-  const outputsize = String(req.query.outputsize || 'compact').trim();
-  const interval = String(req.query.interval || '').trim();
-  const func =
-    interval.length > 0 ? 'TIME_SERIES_INTRADAY' : 'TIME_SERIES_DAILY_ADJUSTED';
+  const interval = String(req.query.interval || '1d').trim();
+  const fallbackStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const period1 = getDateParam(req.query.period1, fallbackStart);
+  const period2 = getDateParam(req.query.period2, new Date());
 
   if (!symbol) {
     return res.status(400).json({ error: 'Missing required query param: symbol' });
   }
 
-  if (!API_KEY) {
-    return res.status(501).json({
-      error: 'Missing Alpha Vantage API key',
-      hint: 'Set ALPHA_VANTAGE_API_KEY in your environment.',
-    });
-  }
-
-  const params = new URLSearchParams({
-    function: func,
-    symbol,
-    apikey: API_KEY,
-    outputsize,
-  });
-
-  if (interval.length > 0) {
-    params.set('interval', interval);
-  }
-
   try {
-    const response = await fetch(`${ALPHA_VANTAGE_BASE_URL}?${params.toString()}`);
-    if (!response.ok) {
-      return res.status(502).json({
-        error: 'Alpha Vantage request failed',
-        status: response.status,
+    const result = await yahooFinance.chart(symbol, {
+      period1,
+      period2,
+      interval,
+    });
+
+    const points = (result?.quotes || [])
+      .map((quote) => ({
+        date: toDateOnly(quote.date),
+        close: toNumber(quote.close),
+      }))
+      .filter((point) => point.date && point.close !== null)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (points.length === 0) {
+      return res.status(404).json({
+        error: 'No data returned for that symbol or date range.',
       });
     }
 
-    const payload = await response.json();
-
-    if (payload['Error Message']) {
-      return res.status(400).json({ error: payload['Error Message'] });
-    }
-
-    if (payload.Note) {
-      return res.status(429).json({ error: payload.Note });
-    }
-
-    const series = extractSeries(payload);
-    if (!series) {
-      return res.status(502).json({ error: 'Unexpected Alpha Vantage response.' });
-    }
-
-    const points = Object.entries(series)
-      .map(([date, values]) => ({
-        date,
-        close:
-          toNumber(values['5. adjusted close']) ??
-          toNumber(values['4. close']) ??
-          toNumber(values['1. open']),
-      }))
-      .filter((point) => point.close !== null)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    const latest = points.length > 0 ? points[points.length - 1] : null;
+    const latest = points[points.length - 1];
 
     return res.json({
       symbol,
       points,
       latest,
-      source: 'Alpha Vantage',
+      source: 'Yahoo Finance',
+      meta: {
+        interval,
+        period1: toDateOnly(period1),
+        period2: toDateOnly(period2),
+      },
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to fetch stock data.' });
+    return res.status(502).json({
+      error: 'Yahoo Finance request failed.',
+      message: error?.message || 'Unknown error',
+    });
   }
 });
 
