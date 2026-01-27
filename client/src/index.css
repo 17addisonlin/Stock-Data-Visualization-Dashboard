@@ -1,24 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=Space+Grotesk:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
-  font-family: 'IBM Plex Sans', system-ui, sans-serif;
-  background: radial-gradient(circle at top, #fdfbf9 0%, #f6f1ea 45%, #d7c6b7 100%);
+  font-family: 'Manrope', system-ui, sans-serif;
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(245, 185, 66, 0.2), transparent 40%),
+    #0b0d10;
   min-height: 100vh;
 }
 
 ::selection {
-  background: #e06f5e;
-  color: #fdfbf9;
+  background: rgba(245, 185, 66, 0.35);
+  color: #f8fafc;
 }
 
-.sheen {
-  background-image: linear-gradient(120deg, rgba(27, 77, 99, 0.1), rgba(224, 111, 94, 0.2));
+.surface-glow {
+  box-shadow: 0 0 0 1px rgba(31, 36, 43, 0.7), 0 20px 55px -35px rgba(0, 0, 0, 0.9);
 }

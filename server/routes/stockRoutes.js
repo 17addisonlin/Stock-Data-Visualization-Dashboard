@@ -68,7 +68,11 @@ router.get('/timeseries', async (req, res) => {
     const points = (result?.quotes || [])
       .map((quote) => ({
         date: toDateOnly(quote.date),
+        open: toNumber(quote.open),
+        high: toNumber(quote.high),
+        low: toNumber(quote.low),
         close: toNumber(quote.close),
+        volume: toNumber(quote.volume),
       }))
       .filter((point) => point.date && point.close !== null)
       .sort((a, b) => new Date(a.date) - new Date(b.date));
